@@ -3,6 +3,8 @@ import React, { Component } from 'react';
 export default class PokemonInfo extends Component {
   state = {
     pokemon: null,
+    loading: false,
+    error: null,
   };
 
   componentDidUpdate(prevProps, _) {
@@ -10,19 +12,40 @@ export default class PokemonInfo extends Component {
     const nextName = this.props.pokemonName;
 
     if (prevName !== nextName) {
-      console.log('Name was changed!');
+      this.setState({ loading: true, pokemon: null });
 
       fetch(`http://pokeapi.co/api/v2/pokemon/${nextName}`)
-        .then(response => response.json())
-        .then(console.log);
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+          return Promise.reject(new Error(`ERROR! No ${nextName} name was found!`));
+        })
+        .then(pokemon => this.setState({ pokemon }))
+        .catch(error => this.setState({ error }))
+        .finally(() => this.setState({ loading: false }));
     }
   }
 
   render() {
+    const { pokemon, loading, error } = this.state;
+    const { pokemonName } = this.props;
+
     return (
       <div>
-        <h1>Pokemon Info</h1>
-        <p>{this.props.pokemonName}</p>
+        {error && <h1>{error.message}</h1>}
+        {loading && <div>...Loading...</div>}
+        {!pokemonName && <div>Enter pokemon`s name!</div>}
+        {pokemon && (
+          <div>
+            <p>{pokemon.name}</p>
+            <img
+              src={pokemon.sprites.other['official-artwork'].front_default}
+              width="240"
+              alt="pokemon-name"
+            />
+          </div>
+        )}
       </div>
     );
   }
